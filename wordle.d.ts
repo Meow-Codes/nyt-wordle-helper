@@ -6,7 +6,7 @@ interface WorldleState {
   lastCompletedTs: number | null;
   lastPlayedTs: number | null;
   restoringFromLocalStorage: null;
-  rowIndex: 0 | 1 | 2 | 3 | 4;
+  rowIndex: number;
   solution: string;
   tick?: number;
 }

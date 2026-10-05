@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "description": "Wordle copilot",
   "scripts": {
-    "build": "esbuild src/main.ts src/sw.ts src/popup/popup.ts --bundle --minify --outdir=dist && cp src/popup/popup.html dist/popup",
+    "build": "esbuild src/main.ts src/sw.ts src/popup/popup.ts --bundle --minify --outdir=dist && copy /Y src\\popup\\popup.html dist\\popup\\",
     "dev": "nodemon --watch src -e '*' --exec npm run build --ignore dist"
   },
   "author": "david",

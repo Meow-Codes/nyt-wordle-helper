@@ -1,27 +1,34 @@
 import words from "./words.json";
 
-const ch = new BroadcastChannel("optionsCh");
-
 function getSummary(ws: WorldleState) {
-  // char means correct, set means exclude
-  const soln = new Array<string | Set<string>>(5).fill(new Set());
+  // char means correct, set means excluded from that position
+  const soln = Array.from(
+    { length: 5 },
+    () => new Set<string>()
+  ) as (string | Set<string>)[];
+
   const includes = new Set<string>();
   const excludes = new Set<string>();
 
   ws.evaluations.forEach((e, ei) => {
     if (!e) return;
+
     e.forEach((term, ti) => {
       const char = ws.boardState[ei][ti];
+
       switch (term) {
         case "correct":
           soln[ti] = char;
           break;
+
         case "present":
           includes.add(char);
+
           if (typeof soln[ti] !== "string") {
-            soln[ti] = new Set([...soln[ti], char]);
+            soln[ti].add(char);
           }
           break;
+
         case "absent":
           excludes.add(char);
           break;
@@ -38,17 +45,21 @@ function getSummary(ws: WorldleState) {
 
 function getPattern(soln: (string | Set<string>)[]) {
   let res = "";
+
   soln.forEach((s) => {
     if (typeof s === "string") {
       res += s;
       return;
     }
+
     if (s.size === 0) {
       res += ".";
       return;
     }
+
     res += `[^${[...s].join("")}]`;
   });
+
   return res;
 }
 
@@ -58,30 +69,47 @@ function getOptions(ws: WorldleState): string[] {
   const re = new RegExp(pattern);
 
   return words.filter((w) => {
-    let iter = includes.values();
-    let val = iter.next().value;
-    while (val) {
-      if (!w.includes(val)) return false;
-      val = iter.next().value;
+    for (const char of includes) {
+      if (!w.includes(char)) {
+        return false;
+      }
     }
-    iter = excludes.values();
-    val = iter.next().value;
-    while (val) {
-      if (w.includes(val)) return false;
-      val = iter.next().value;
+
+    for (const char of excludes) {
+      if (w.includes(char)) {
+        return false;
+      }
     }
+
     return re.test(w);
   });
 }
 
-chrome.storage.onChanged.addListener((store) => {
-  const ws: WorldleState = store.wordleState?.newValue;
-
-  // new game
-  if (!ws || ws.rowIndex == 0) {
-    ch.postMessage({ options: words });
+function updateOptions(ws: WorldleState | undefined) {
+  if (!ws || ws.rowIndex === 0) {
+    chrome.storage.local.set({ options: words });
     return;
   }
 
-  ch.postMessage({ options: getOptions(ws) });
+  const options = getOptions(ws);
+
+  chrome.storage.local.set({ options });
+}
+
+chrome.storage.onChanged.addListener((changes) => {
+  const wordleState = changes.wordleState?.newValue as
+    | WorldleState
+    | undefined;
+
+  if (!wordleState) {
+    return;
+  }
+
+  updateOptions(wordleState);
+});
+
+chrome.storage.local.get("wordleState", (result) => {
+  const wordleState = result.wordleState as WorldleState | undefined;
+
+  updateOptions(wordleState);
 });
