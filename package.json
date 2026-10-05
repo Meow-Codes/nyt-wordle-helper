@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "description": "Wordle copilot",
   "scripts": {
-    "build": "esbuild src/main.ts src/popup/popup.ts --bundle --minify --outdir=dist && copy /Y src\\popup\\popup.html dist\\popup\\ && copy /Y manifest.json dist\\",
+    "build": "esbuild src/main.ts src/popup/popup.ts --bundle --minify --outdir=dist && shx cp src/popup/popup.html dist/popup/ && shx cp manifest.json dist/",
+    "typecheck": "tsc --noEmit",
     "dev": "nodemon --watch src --watch manifest.json -e ts,html,json --exec npm run build --ignore dist"
   },
   "author": "david",
@@ -12,6 +13,7 @@
     "@types/chrome": "^0.0.178",
     "esbuild": "^0.14.21",
     "nodemon": "^2.0.15",
+    "shx": "^0.4.0",
     "typescript": "^4.5.5"
   }
 }

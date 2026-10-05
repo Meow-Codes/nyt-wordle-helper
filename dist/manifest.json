@@ -10,7 +10,10 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://*.nytimes.com/games/*"],
+      "matches": [
+        "https://*.nytimes.com/games/*",
+        "https://*.wordleinone.org/*"
+      ],
       "js": ["main.js"],
       "run_at": "document_idle"
     }
