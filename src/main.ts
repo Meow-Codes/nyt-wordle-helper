@@ -1,16 +1,28 @@
 type Term = "correct" | "present" | "absent";
+type Mode = "wordle" | "wordle-in-one";
+
+function getMode(): Mode | null {
+  const p = location.pathname;
+  if (p.includes("/games/bonus/wordle-in-one")) return "wordle-in-one";
+  if (p.startsWith("/games/wordle")) return "wordle";
+  return null;
+}
 
 function readBoard(): WorldleState | null {
+  const mode = getMode();
+  if (!mode) return null;
+
   const tiles = Array.from(
     document.querySelectorAll<HTMLElement>('[data-testid="tile"]')
   );
-  if (tiles.length < 30) return null;
+  if (tiles.length < 5) return null;
 
+  const rowCount = Math.floor(tiles.length / 5);
   const boardState: string[] = [];
   const evaluations: (Term[] | null)[] = [];
   let rowIndex = 0;
 
-  for (let r = 0; r < 6; r++) {
+  for (let r = 0; r < rowCount; r++) {
     const row = tiles.slice(r * 5, r * 5 + 5);
     const terms: Term[] = [];
     let letters = "";
@@ -47,6 +59,7 @@ function readBoard(): WorldleState | null {
     restoringFromLocalStorage: null,
     rowIndex,
     solution: "",
+    mode,
   };
 }
 

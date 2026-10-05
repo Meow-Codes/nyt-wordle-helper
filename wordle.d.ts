@@ -9,4 +9,5 @@ interface WorldleState {
   rowIndex: number;
   solution: string;
   tick?: number;
+  mode?: "wordle" | "wordle-in-one";
 }

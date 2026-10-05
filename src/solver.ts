@@ -2,54 +2,45 @@ import words from "./words.json";
 
 type Term = "correct" | "present" | "absent";
 
+// Standard Wordle scoring, including duplicate-letter handling.
+function score(guess: string, answer: string): Term[] {
+  const res: Term[] = ["absent", "absent", "absent", "absent", "absent"];
+  const left: Record<string, number> = {};
+
+  for (let i = 0; i < 5; i++) {
+    if (guess[i] === answer[i]) {
+      res[i] = "correct";
+    } else {
+      left[answer[i]] = (left[answer[i]] ?? 0) + 1;
+    }
+  }
+
+  for (let i = 0; i < 5; i++) {
+    if (res[i] === "correct") continue;
+    const c = guess[i];
+    if ((left[c] ?? 0) > 0) {
+      res[i] = "present";
+      left[c]--;
+    }
+  }
+
+  return res;
+}
+
+// Keep only words that would produce exactly the colors shown on every evaluated row.
+// Works for Wordle (many rows) and Wordle in One (one clue row).
 export function getOptions(ws: WorldleState): string[] {
-  const green: (string | null)[] = [null, null, null, null, null];
-  const notAt: Set<string>[] = Array.from({ length: 5 }, () => new Set<string>());
-  const minCount: Record<string, number> = {};
-  const maxCount: Record<string, number> = {};
+  const rows: { guess: string; terms: Term[] }[] = [];
 
-  ws.evaluations.forEach((ev, row) => {
-    if (!ev) return;
-    const word = ws.boardState[row];
-    const seen: Record<string, number> = {}; // correct + present per letter in this row
-    const hasAbsent = new Set<string>();
-
-    ev.forEach((term: Term, i) => {
-      const ch = word[i];
-      if (term === "correct") {
-        green[i] = ch;
-        seen[ch] = (seen[ch] ?? 0) + 1;
-      } else if (term === "present") {
-        notAt[i].add(ch);
-        seen[ch] = (seen[ch] ?? 0) + 1;
-      } else {
-        notAt[i].add(ch);
-        hasAbsent.add(ch);
-      }
-    });
-
-    for (const [ch, n] of Object.entries(seen)) {
-      minCount[ch] = Math.max(minCount[ch] ?? 0, n);
-    }
-    // gray tile means "no more copies than the green/yellow ones in this row"
-    for (const ch of hasAbsent) {
-      maxCount[ch] = Math.min(maxCount[ch] ?? 5, seen[ch] ?? 0);
-    }
+  ws.evaluations.forEach((terms, i) => {
+    const guess = ws.boardState[i];
+    if (terms && guess && guess.length === 5) rows.push({ guess, terms });
   });
 
-  return (words as string[]).filter((w) => {
-    for (let i = 0; i < 5; i++) {
-      if (green[i] && w[i] !== green[i]) return false;
-      if (notAt[i].has(w[i])) return false;
-    }
-    const counts: Record<string, number> = {};
-    for (const ch of w) counts[ch] = (counts[ch] ?? 0) + 1;
-    for (const [ch, n] of Object.entries(minCount)) {
-      if ((counts[ch] ?? 0) < n) return false;
-    }
-    for (const [ch, n] of Object.entries(maxCount)) {
-      if ((counts[ch] ?? 0) > n) return false;
-    }
-    return true;
-  });
+  return (words as string[]).filter((w) =>
+    rows.every(({ guess, terms }) => {
+      const s = score(guess, w);
+      return s.every((t, i) => t === terms[i]);
+    })
+  );
 }
