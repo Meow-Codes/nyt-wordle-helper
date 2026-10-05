@@ -1,20 +1,29 @@
-function setOptions(options: string[]) {
-  const ol = document.querySelector("ol");
+import words from "../words.json";
+import { getOptions } from "../solver";
 
-  var next = document.createElement("ol");
-  options.forEach((o) => {
+function render(options: string[]) {
+  const root = document.getElementById("container")!;
+  root.innerHTML = "";
+
+  const count = document.createElement("div");
+  count.className = "count";
+  count.textContent = `${options.length} possible`;
+  root.appendChild(count);
+
+  const ol = document.createElement("ol");
+  options.slice(0, 50).forEach((w) => {
     const li = document.createElement("li");
-    li.appendChild(document.createTextNode(o));
-    next.appendChild(li);
+    li.textContent = w;
+    ol.appendChild(li);
   });
-
-  ol?.replaceWith(next);
+  root.appendChild(ol);
 }
 
-const ch = new BroadcastChannel("optionsCh");
-
-ch.postMessage({ type: "awake" });
-
-ch.onmessage = (msg) => {
-  setOptions(msg?.data?.options ?? []);
-};
+chrome.storage.local.get("wordleState", (result) => {
+  const ws = result.wordleState as WorldleState | undefined;
+  if (!ws || ws.rowIndex === 0) {
+    render(words as string[]);
+  } else {
+    render(getOptions(ws));
+  }
+});
